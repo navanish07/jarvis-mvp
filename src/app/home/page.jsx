@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react';
-import ScreenCaptureWithTranscript from '@/components/ScreenCapture';
+import ScreenCaptureWithTranscript from '../../components/ScreenCapture';
 
 export default function HomePage() {
   const [transcript, setTranscript] = useState('');
