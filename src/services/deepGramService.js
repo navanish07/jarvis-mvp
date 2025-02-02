@@ -1,50 +1,71 @@
 import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
+import { logger } from '../utils/logger';
 
 const createLiveConnection = (onTranscript) => {
   // Create the Deepgram client using your public API key.
+  console.log('API Key exists:', !!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
+  logger.log('API Key exists:', !!process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
+
+  let isConnected = false;
+
   const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
   
   // Create a live transcription connection with desired options.
-  const connection = deepgram.listen.live({
+  const liveConnection = deepgram.listen.live({
     model: 'nova-2',
     interim_results: true,
     punctuate: true,
     language: 'en-US',
   });
 
-  connection.on(LiveTranscriptionEvents.Open, () => {
-    console.log("Deepgram WebSocket Connected");
-  });
-
-  connection.on(LiveTranscriptionEvents.Transcript, (data) => {
-    // Log the raw data to inspect its format
-    console.log("Transcript Event Data:", data);
-    // Check if data is string; if so try to parse it.
-    let transcript = '';
-    if (typeof data === 'string') {
-      try {
-        const parsed = JSON.parse(data);
-        transcript = parsed.channel?.alternatives?.[0]?.transcript;
-      } catch (e) {
-        console.error("Error parsing transcript data:", e);
+  let connectionTimer;
+  liveConnection.on(LiveTranscriptionEvents.Open, () => {
+    clearTimeout(connectionTimer);
+    console.log("Deepgram connection established");
+    // Send a keep-alive message every 5 seconds
+    setInterval(() => {
+      if (liveConnection.getReadyState() === WebSocket.OPEN) {
+        liveConnection.keepAlive();
       }
-    } else {
-      transcript = data.channel?.alternatives?.[0]?.transcript;
+    }, 5000);
+  });
+
+  // Handle connection timeout
+  connectionTimer = setTimeout(() => {
+    if (liveConnection.getReadyState() !== WebSocket.OPEN) {
+      liveConnection.Close();
+      console.error("Deepgram connection timed out");
     }
-    if (transcript) {
-      onTranscript(transcript);
+  }, 5000);
+
+  liveConnection.on(LiveTranscriptionEvents.Transcript, (data) => {
+    
+    console.log("Raw data: ", data)
+
+    try {
+      const transcript = data.channel.alternatives[0].transcript;
+      if (transcript && data.is_final) {
+        onTranscript(prev => `${prev} ${transcript}`.trim());
+      }
+    } catch (error) {
+      console.error('Error processing transcript:', error);
     }
   });
 
-  connection.on(LiveTranscriptionEvents.Error, (err) => {
+  liveConnection.on(LiveTranscriptionEvents.Error, (err) => {
     console.error("Deepgram Error:", err);
   });
 
-  connection.on(LiveTranscriptionEvents.Close, () => {
+  liveConnection.on(LiveTranscriptionEvents.Close, () => {
+    isConnected = false;
     console.log("Deepgram connection closed.");
   });
 
-  return connection;
+  if (!isConnected) {
+    logger.log("Warning: Returning connection before open state confirmed");
+  }
+
+  return liveConnection;
 };
 
 export { createLiveConnection };
