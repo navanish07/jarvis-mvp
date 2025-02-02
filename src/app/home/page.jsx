@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, { useState } from 'react';
 import ScreenCaptureWithTranscript from '../../components/ScreenCapture';
 
@@ -38,7 +38,7 @@ export default function HomePage() {
         <div className="bg-white rounded shadow p-4 overflow-y-auto">
           <h2 className="text-lg font-semibold mb-2">Other User Transcript</h2>
           <p className="text-gray-700">
-            {otherUserTranscript || 'Other user\'s transcript content goes here...'}
+            {otherUserTranscript || "Other user's transcript content goes here..."}
           </p>
         </div>
       </div>

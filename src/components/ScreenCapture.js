@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createLiveConnection } from '@/services/deepGramService';
 
 export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
@@ -13,7 +13,7 @@ export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
   // Initialize Deepgram connection on mount
   useEffect(() => {
     deepgramConnectionRef.current = createLiveConnection((newTranscript) => {
-      // Update parent's transcript state by merging new transcript snippets
+      // Merge new transcript snippets in parent state
       onTranscriptionUpdate(prev => `${prev} ${newTranscript}`.trim());
     });
 
@@ -22,7 +22,7 @@ export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
 
   const startCapture = async () => {
     try {
-      // Capture screen with audio using getDisplayMedia
+      // Capture screen and audio
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
@@ -30,7 +30,7 @@ export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
       mediaStreamRef.current = stream;
       videoRef.current.srcObject = stream;
 
-      // Setup AudioContext and ScriptProcessorNode for audio processing.
+      // Setup AudioContext and a ScriptProcessorNode to process audio data.
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -40,13 +40,13 @@ export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
 
       processor.onaudioprocess = (e) => {
         const audioData = e.inputBuffer.getChannelData(0);
-        // Convert Float32 samples to Int16 samples
+        // Convert float32 array to int16 array
         const int16Buffer = new Int16Array(audioData.length);
         for (let i = 0; i < audioData.length; i++) {
           let s = Math.max(-1, Math.min(1, audioData[i]));
           int16Buffer[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
         }
-        // Send the audio data to Deepgram
+        // Send processed audio to Deepgram live connection
         if (deepgramConnectionRef.current) {
           deepgramConnectionRef.current.send(int16Buffer.buffer);
         }
@@ -80,9 +80,7 @@ export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
         <button
           onClick={isRecording ? stopCapture : startCapture}
           className={`px-4 py-2 rounded-lg ${
-            isRecording 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-blue-500 hover:bg-blue-600'
+            isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
           } text-white transition-colors`}
         >
           {isRecording ? 'Stop Recording' : 'Start Recording'}
