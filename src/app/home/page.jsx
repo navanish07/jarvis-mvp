@@ -3,26 +3,26 @@ import React, { useState, useRef, useEffect } from 'react';
 import MicrophoneTranscription from '../../components/MicrophoneTranscription';
 import ScreenSharing from '../../components/ScreenSharing';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+// Import your supabase client
+import { supabase } from "@/utils/supabase/client";
 
 export default function HomePage() {
   const [transcript, setTranscript] = useState('');
   const [geminiAnswers, setGeminiAnswers] = useState([]);
   const [otherUserTranscript, setOtherUserTranscript] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // This state tracks the length of the transcript up until the last partial analysis.
   const [lastAnalyzedLength, setLastAnalyzedLength] = useState(0);
 
   const yourTranscriptRef = useRef(null);
   const geminiAnswerRef = useRef(null);
   const otherUserTranscriptRef = useRef(null);
 
-  // Capture when the session started:
+  // Capture when the session started
   const [sessionStartTime] = useState(() => new Date());
 
   const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
-  // For partial analysis: analyze only the new transcript since the last analysis.
+  // Partial analysis based on new transcript since last analysis.
   const handleGetPartialAnalysis = async () => {
     if (isLoading) return;
     try {
@@ -65,7 +65,7 @@ Provide a brief summary and follow-up questions.`;
     }
   };
 
-  // For final summary: analyze the entire transcript but do not render the result.
+  // Final summary: analyze the entire conversation and store it in the user's session in MongoDB.
   const handleFullSummary = async () => {
     if (isLoading) return;
     try {
@@ -76,25 +76,49 @@ Provide a brief summary and follow-up questions.`;
 Interviewer: ${transcript}
 Candidate: ${otherUserTranscript}
 
-Provide a comprehensive summary`;
+Provide a comprehensive summary and list follow-up questions.`;
       const result = await model.generateContent(combinedPrompt);
       const response = await result.response;
       const text = response.text();
 
-      // Do not update geminiAnswers; instead, log or store it as needed.
       console.log("Full Summary (not displayed):", text);
-      // You may choose to store full summary in a separate state or send to your backend.
+
+      // Retrieve current user session info from Supabase.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      // Prepare payload with current user id, transcripts and summary.
+      const payload = {
+        userId: session.user.id,
+        transcriptions: {
+          screenShare: transcript,
+          microphone: otherUserTranscript,
+        },
+        summary: text,
+        startTime: sessionStartTime.toISOString(),
+        endTime: new Date().toISOString(),
+      };
+
+      // Post the session to your API route.
+      await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("Session stored for user:", session.user.id);
     } catch (error) {
-      console.error('Gemini API error (full):', error);
-      console.log("Error generating full summary.");
+      console.error('Gemini API / Session save error (full):', error);
+      console.log("Error generating or saving full summary.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // When screen sharing stops, call the final full summary function.
+  // Called when screen sharing stops.
   const handleScreenSharingStop = async () => {
-    console.log("Screen sharing stopped. Generating full summary...");
+    console.log("Screen sharing stopped. Generating full summary and saving session...");
     await handleFullSummary();
   };
 
@@ -140,7 +164,7 @@ Provide a comprehensive summary`;
           </div>
         </div>
 
-        {/* Middle Column: Only Partial Analysis is displayed */}
+        {/* Middle Column: Render Only Partial Analysis */}
         <div
           ref={geminiAnswerRef}
           className="col-span-2 bg-white rounded shadow p-4 overflow-y-auto flex flex-col"

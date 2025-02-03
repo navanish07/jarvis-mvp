@@ -18,7 +18,7 @@ export default function Home() {
 
     getSession();
 
-    // Subscribe to auth state changes in case the session changes.
+    // Subscribe to auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
     });
@@ -33,7 +33,7 @@ export default function Home() {
     if (error) {
       console.error('Error during logout:', error.message);
     } else {
-      router.push('/login'); // Redirect to login page after logout
+      router.push('/login');
     }
   };
 
@@ -60,8 +60,28 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white space-y-4">
       <h1 className="text-3xl font-bold mb-4 text-black">Hello</h1>
+      <div className="flex space-x-4">
+        <button 
+          onClick={() => router.push('/home')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Home
+        </button>
+        <button 
+          onClick={() => router.push('/user')}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          User
+        </button>
+        <button 
+          onClick={() => router.push('/sessions')}
+          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+        >
+          Sessions
+        </button>
+      </div>
       <button 
         onClick={handleLogout} 
         className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
