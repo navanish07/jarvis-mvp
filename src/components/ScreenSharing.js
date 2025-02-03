@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const ScreenSharing = ({ onTranscriptionUpdate }) => {
+const ScreenSharing = ({ onTranscriptionUpdate, onStop }) => {
   const mediaRecorderRef = useRef(null);
   const socketRef = useRef(null);
   const streamRef = useRef(null);
@@ -21,52 +21,42 @@ const ScreenSharing = ({ onTranscriptionUpdate }) => {
 
   const startScreenShare = async () => {
     try {
-      // Get screen capture stream with audio
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true
       });
 
-      // Verify audio track availability
       if (stream.getAudioTracks().length === 0) {
         throw new Error('Please share audio when selecting your screen');
       }
 
-      // Create separate audio stream for transcription
       const audioStream = new MediaStream(stream.getAudioTracks());
-      
-      // Get supported MIME type for audio recording
       const mimeType = getSupportedMimeType();
       if (!mimeType) {
         throw new Error('Browser does not support any available audio format');
       }
 
-      // Store references
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
 
-      // Initialize media recorder with audio stream
       const mediaRecorder = new MediaRecorder(audioStream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
-      // Configure WebSocket connection to Deepgram
       const socket = new WebSocket(
         'wss://api.deepgram.com/v1/listen',
         ['token', process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY]
       );
       socketRef.current = socket;
 
-      // WebSocket open handler
       socket.onopen = () => {
         mediaRecorder.addEventListener('dataavailable', (event) => {
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(event.data);
           }
         });
-        mediaRecorder.start(150); // Collect 250ms chunks
+        mediaRecorder.start(150);
       };
 
-      // WebSocket message handler
       socket.onmessage = (message) => {
         try {
           const received = JSON.parse(message.data);
@@ -79,7 +69,6 @@ const ScreenSharing = ({ onTranscriptionUpdate }) => {
         }
       };
 
-      // Handle screen sharing stop from browser UI
       stream.getVideoTracks()[0].addEventListener('ended', () => {
         stopScreenShare();
       });
@@ -93,36 +82,28 @@ const ScreenSharing = ({ onTranscriptionUpdate }) => {
   };
 
   const stopScreenShare = () => {
-    // Cleanup media resources
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
     }
-
-    // Cleanup network resources
     if (socketRef.current) {
       if (socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.close();
       }
       socketRef.current = null;
     }
-
-    // Stop all media tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-
-    // Reset video element
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-
     setIsRecording(false);
+    if (onStop) onStop();
   };
 
   useEffect(() => {
-    // Cleanup on component unmount
     return () => {
       stopScreenShare();
     };
@@ -133,7 +114,7 @@ const ScreenSharing = ({ onTranscriptionUpdate }) => {
       <video 
         ref={videoRef} 
         autoPlay 
-        muted // Mute video to prevent audio feedback
+        muted
         className="w-full h-full object-contain bg-black rounded"
       />
       <div className="absolute bottom-4 left-4">
