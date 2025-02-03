@@ -11,6 +11,9 @@
   "dependencies": {
     "@deepgram/sdk": "^3.9.0",
     "@google/generative-ai": "^0.21.0",
+    "@supabase/supabase-js": "^2.48.1",
+    "formidable": "^3.5.2",
+    "mongodb": "^6.13.0",
     "next": "15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
