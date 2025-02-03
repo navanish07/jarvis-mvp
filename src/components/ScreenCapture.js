@@ -2,7 +2,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { createLiveConnection } from '../services/deepGramService';
-import { logger } from '../utils/logger';
 
 export default function ScreenCaptureWithTranscript({ onTranscriptionUpdate }) {
   const [isRecording, setIsRecording] = useState(false);

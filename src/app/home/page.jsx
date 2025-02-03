@@ -84,7 +84,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen p-4 bg-gray-100">
-      <MicrophoneTranscription onTranscriptionUpdate={setOtherUserTranscript} />
+      {/* <MicrophoneTranscription onTranscriptionUpdate={setOtherUserTranscript} /> */}
       <div className="grid grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
         {/* First Column */}
         <div className="flex flex-col space-y-4 min-h-0 col-span-1">
@@ -152,6 +152,7 @@ export default function HomePage() {
             {otherUserTranscript || "Your transcript content goes here..."}
           </p>
         </div>
+        <MicrophoneTranscription onTranscriptionUpdate={setOtherUserTranscript} />
       </div>
     </div>
   );
