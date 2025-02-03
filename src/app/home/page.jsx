@@ -76,7 +76,7 @@ Provide a brief summary and follow-up questions.`;
 Interviewer: ${transcript}
 Candidate: ${otherUserTranscript}
 
-Provide a comprehensive summary and list follow-up questions.`;
+Provide only a comprehensive summary`;
       const result = await model.generateContent(combinedPrompt);
       const response = await result.response;
       const text = response.text();
