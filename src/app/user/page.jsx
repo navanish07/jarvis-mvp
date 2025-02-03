@@ -10,7 +10,6 @@ export default function UserPage() {
   const [message, setMessage] = useState("");
   const [resumeUrl, setResumeUrl] = useState("");
 
-  // Check authentication
   useEffect(() => {
     async function getSession() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -64,6 +63,22 @@ export default function UserPage() {
     }
   };
 
+  const handleDeleteResume = async () => {
+    if (!session) return;
+    
+    const res = await fetch(`/api/resume/delete?userId=${session.user.id}`, {
+      method: "DELETE",
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      setMessage("Resume deleted successfully!");
+      setResumeUrl(""); // Clear the preview
+    } else {
+      setMessage(`Error: ${data.error}`);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
       <h1 className="text-3xl font-bold mb-4 text-black">User Resume</h1>
@@ -79,6 +94,12 @@ export default function UserPage() {
         className="mb-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
       >
         Retrieve Resume
+      </button>
+      <button
+        onClick={handleDeleteResume}
+        className="mb-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-800"
+      >
+        Delete Resume
       </button>
       {message && <p className="text-black mb-4">{message}</p>}
       {resumeUrl && (
