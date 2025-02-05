@@ -28,7 +28,7 @@ export default function UserPage() {
 
   const handleUpload = async () => {
     if (!file) {
-      setMessage("Please select a file first.");
+      setMessage("Error: Please select a file first.");
       return;
     }
 
